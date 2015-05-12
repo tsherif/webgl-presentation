@@ -1,0 +1,251 @@
+<!DOCTYPE html>
+<html lang="en">  
+<head>
+  <meta charset="utf-8">
+  <title>The WebGL Graphics Pipeline</title>
+  <link rel="stylesheet" href="css/reveal.min.css">
+  <link rel="stylesheet" href="css/theme/default.css" id="theme"> 
+  <link rel="stylesheet" href="plugin/highlight/styles/docco.css"> 
+  <link rel="icon" type="image/png" href="img/WebGL.png">
+  <style>
+
+    .reveal .slide-number {
+      font-size: 24px;
+      font-weight: bold;
+    }
+
+    .reveal section img {
+      max-height: 600px;
+    }
+
+    .reveal pre {
+      box-shadow: none;
+    }
+
+    .reveal .me {
+      margin-top: 42px;
+    }
+
+    .reveal ul ul {
+      font-size: 0.8em;
+    }
+
+    #rasterization {
+      height: 400px;
+    }
+
+  </style>
+</head>
+
+<body>
+  <div class="reveal">
+    <div class="slides">
+      <section>
+        <h1>The WebGL<BR>Graphics Pipeline</h1>
+        <p>Tarek Sherif</p>
+      </section>
+
+      <section>
+        <h2>Outline</h2>
+        <ul>
+          <li>Motivation</li>
+          <li>Basic Architecture</li>
+          <li>Pipeline Components</li>
+          <li>Advantages and Limitations</li>
+        </ul>
+      </section>
+
+      <section>
+        <h2>Motivation</h2>
+        <ul>
+          <li>
+            The pipeline must handle massive amounts of data in minimal time
+            <ul>
+              <li>Potentially hundreds of thousands of vertices</li>
+              <li>Transformation, lighting, texturing, shading</li>
+              <li>Repeat every 16ms!</li>
+            </ul>
+          </li>
+
+        </ul>
+      </section>
+
+      <section>
+        <h2>How?</h2>
+        <ul>
+          <li>
+            Massive parralelism
+            <ul>
+              <li>SIMD</li>
+              <li>Transformations applied independently to each vertex</li>
+              <li>Shading applied independently to each pixel</li>
+            </ul>
+          </li>
+        </ul>
+      </section>
+      <section>
+        <img src="img/magic-pipeline.png">
+      </section>
+      <section>
+        <h2>Pipeline Components</h2>
+        <ul>
+          <li>Modeling</li>
+          <li>Vertex Shader</li>
+          <li>Rasterization</li>
+          <li>Fragment Shader</li>
+          <li>Rendering</li>
+        </ul>
+      </section>
+      <section>
+        <h2>Modeling</h2>
+        <ul>
+          <li>Before running the pipeline</li>
+          <li>Describe the geometry, normals, uv</li>
+          <li>Describe material properties</li>
+        </ul>
+      </section>
+      <section>
+        <h2>Vertex Shader</h2>
+        <ul>
+          <li>GLSL Code</li>
+          <li>Applied independently to each vertex</li>
+          <li>Move object its position relative to the camera and other objects</li>
+        </ul>
+        <pre>
+          <code class="c">
+  attribute vec4 aPosition;
+  uniform mat4 uMVP;
+
+  void main() {
+    gl_Position = uMVP * aPosition;
+  }
+        </code>
+      </pre>
+      </section>
+      <section>
+        <h2>Three Steps</h2>
+        <ul>
+          <li>
+            Model transformation
+            <ul>
+              <li>Translate, rotate, scale model to its position in "the world"</li>
+            </ul>
+          </li>
+          <li>
+            View transformation
+            <ul>
+              <li>Move object into its position relative to camera</li>
+            </ul>
+          </li>
+          <li>
+            Projection transformation
+            <ul>
+              <li>Apply perspective projection to give depth</li>
+            </ul>
+          </li>
+          <li>Usually all combined into a single "MVP" matrix</li>
+        </ul>
+      </section>
+      <section>
+        <h2>Rasterization</h2>
+        <ul>
+          <li>Map points on model surface to pixels of the screen</li>
+        </ul>
+        <!-- Image by Martin Kraus http://en.wikibooks.org/wiki/GLSL_Programming/Rasterization#/media/File:Pixels_covered_by_a_triangle.png -->
+        <img id="rasterization" src="img/rasterization.png">
+      </section>
+      <section>
+        <h2>Rasterization</h2>
+        <ul>
+          <li>Clip objects or parts that won't be seen</li>
+          <li>Vertex attributes will be interpolated across the pixels they enclose</li>
+          <li>
+            Interpolated attributes can be anything, but typically
+            <ul>
+              <li>Position</li>
+              <li>Normals</li>
+              <li>Colors</li>
+              <li>UVs</li>
+            </ul>
+          </li>
+        </ul>
+      </section>
+      <section>
+        <h2>Fragment Shader</h2>
+        <ul>
+          <li>GLSL Code</li>
+          <li>Use interpolated vertex attributes to calculate pixel color</li>
+        </ul>
+        <pre>
+          <code class="c">
+    varying vec4 vPosition;
+    varying vec4 vNormal;
+    varying vec4 vColor;
+    uniform vec3 uLightPos;
+    uniform vec3 uLightColor;
+
+    void main() {  
+        vec3 lightDir = normalize(uLightPos - vPosition.xyz);
+        float l = max(dot(normalize(vNormal), lightDir), 0.0);
+
+        gl_FragColor = vec4(l * vColor.rgb * uLightColor, vColor.a);
+    }      
+        </code>
+      </pre>
+      </section>
+      <section>
+        <h2>Rendering</h2>
+        <ul>
+          <li>Final application of colors to the screen</li>
+          <li>Includes some logic such as blending and depth testing</li>
+        </ul>
+      </section>
+      <section>
+        <h2>Pipeline Architecture Advantages</h2>
+        <ul>
+          <li>FAST</li>
+          <li>Programmable shaders are very flexible</li>
+        </ul>
+        <div style="margin-top: 20px">
+          <iframe src="http://tareksherif.net/experiments/planet-webgl2/planet-webgl2.html" width="300" height="300"></iframe>
+        </div>
+      </section>
+      <section>
+        <h2>Pipeline Architecture Disadvantages</h2>
+        <ul>
+          <li>
+            Global effects are difficult
+            <ul>
+              <li>Shadows</li>
+              <li>Reflection</li>
+              <li>Refraction</li>
+              <li>Ambient Occlusion</li>
+            </ul>
+          </li>
+          <li>Have to "cheat"</li>
+        </ul>
+      </section>
+      <section>
+        <h1>Thanks!</h1>
+      </section>
+    </div>
+  </div>
+  <script src="lib/js/head.min.js"></script>
+  <script src="js/reveal.min.js"></script>
+  <script src="js/highlight.min.js"></script>
+  <script>
+    Reveal.initialize({
+      history: true,
+      slideNumber: true,
+      controls: false
+    });
+
+    Reveal.addEventListener("slidechanged", function(event) {
+      window.onresize();
+    });
+
+    hljs.initHighlightingOnLoad();
+    
+  </script>
+</body>
+</html>
