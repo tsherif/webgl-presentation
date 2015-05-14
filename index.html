@@ -31,7 +31,7 @@
     }
 
     #rasterization {
-      height: 400px;
+      height: 300px;
     }
 
   </style>
@@ -59,6 +59,20 @@
         <h2>Motivation</h2>
         <ul>
           <li>
+            Having a better understanding of the graphics pipeline will help us:
+            <ul>
+              <li>Understand what effects are possible</li>
+              <li>Understand the performance costs of those effects</li>
+              <li>Come up with new effects?</li>
+            </ul> 
+          </li>
+        </ul>
+      </section>
+
+      <section>
+        <h2>Basic Architecture</h2>
+        <ul>
+          <li>
             The pipeline must handle massive amounts of data in minimal time
             <ul>
               <li>Potentially hundreds of thousands of vertices</li>
@@ -66,12 +80,11 @@
               <li>Repeat every 16ms!</li>
             </ul>
           </li>
-
         </ul>
       </section>
 
       <section>
-        <h2>How?</h2>
+        <h2>Basic Architecture</h2>
         <ul>
           <li>
             Massive parralelism
@@ -83,45 +96,34 @@
           </li>
         </ul>
       </section>
+      
       <section>
-        <img src="img/magic-pipeline.png">
+        <h2>Basic Architecture</h2>
+        <img src="img/parallel.png">
       </section>
+      
       <section>
         <h2>Pipeline Components</h2>
-        <ul>
-          <li>Modeling</li>
-          <li>Vertex Shader</li>
-          <li>Rasterization</li>
-          <li>Fragment Shader</li>
-          <li>Rendering</li>
-        </ul>
+        <img src="img/pipeline.png">
       </section>
+      
       <section>
-        <h2>Modeling</h2>
+        <h2>Set Up</h2>
         <ul>
-          <li>Before running the pipeline</li>
-          <li>Describe the geometry, normals, uv</li>
-          <li>Describe material properties</li>
+          <li>Describe the geometry, normals, UVs</li>
+          <li>Set parameters that will go into shading calculations</li>
         </ul>
       </section>
+      
       <section>
         <h2>Vertex Shader</h2>
         <ul>
-          <li>GLSL Code</li>
+          <li>Programmable</li>
           <li>Applied independently to each vertex</li>
-          <li>Move object its position relative to the camera and other objects</li>
+          <li>Move object to its position relative to the camera and other objects</li>
         </ul>
-        <pre>
-          <code class="c">
-  attribute vec4 aPosition;
-  uniform mat4 uMVP;
-
-  void main() {
-    gl_Position = uMVP * aPosition;
-  }
-        </code>
-      </pre>
       </section>
+
       <section>
         <h2>Three Steps</h2>
         <ul>
@@ -146,36 +148,79 @@
           <li>Usually all combined into a single "MVP" matrix</li>
         </ul>
       </section>
+
+      <section>
+        <h2>Vertex Shader</h2>
+        <h3>GLSL Code</h3>
+        <pre>
+          <code class="c">
+  attribute vec4 aPosition;
+  uniform mat4 uMVP;
+
+  void main() {
+    gl_Position = uMVP * aPosition;
+  }
+        </code>
+      </pre>
+      </section>
+      
       <section>
         <h2>Rasterization</h2>
         <ul>
-          <li>Map points on model surface to pixels of the screen</li>
+          <li>Map points on model surface to pixels of the screen to create "fragments"</li>
         </ul>
         <!-- Image by Martin Kraus http://en.wikibooks.org/wiki/GLSL_Programming/Rasterization#/media/File:Pixels_covered_by_a_triangle.png -->
         <img id="rasterization" src="img/rasterization.png">
       </section>
+      
       <section>
         <h2>Rasterization</h2>
         <ul>
-          <li>Clip objects or parts that won't be seen</li>
           <li>Vertex attributes will be interpolated across the pixels they enclose</li>
+          <li>Each fragment contains interpolated values for an object that covers a given pixel</li>
           <li>
-            Interpolated attributes can be anything, but typically
+            Might produce more than one fragment per pixel
+            <ul>
+              <li>One for each object that covers the pixel</li>
+            </ul>
+          </li>
+        </ul>
+      </section>
+
+      <section>
+        <h2>Rasterization</h2>
+        <ul>
+          <li>
+            Interpolated attributes for a fragment can be anything, but typically include
             <ul>
               <li>Position</li>
               <li>Normals</li>
               <li>Colors</li>
               <li>UVs</li>
+              <li>Depth</li>
             </ul>
           </li>
         </ul>
       </section>
+      
       <section>
         <h2>Fragment Shader</h2>
         <ul>
-          <li>GLSL Code</li>
-          <li>Use interpolated vertex attributes to calculate pixel color</li>
+          <li>Programmable</li>
+          <li>Use fragment data to calculate pixel color</li>
+          <li>
+            Multiple fragments might be considered to calculate the color of a pixel
+            <ul>
+              <li>Choose closest fragment for opaque objects</li>
+              <li>Blend several fragments for transparent objects</li>
+            </ul>
+          </li>
         </ul>
+      </section>
+
+      <section>
+        <h2>Fragment Shader</h2>
+        <h3>GLSL Code</h3>
         <pre>
           <code class="c">
     varying vec4 vPosition;
@@ -193,25 +238,46 @@
         </code>
       </pre>
       </section>
+      
       <section>
         <h2>Rendering</h2>
         <ul>
-          <li>Final application of colors to the screen</li>
+          <li>Final application of colors to pixels of the screen</li>
           <li>Includes some logic such as blending and depth testing</li>
         </ul>
       </section>
+      
       <section>
-        <h2>Pipeline Architecture Advantages</h2>
+        <h2>Advantages and Limitations</h2>
         <ul>
-          <li>FAST</li>
-          <li>Programmable shaders are very flexible</li>
+          <li>
+            Key factors to consider:
+            <ul>
+              <li>Parallel processing is intrinsic to the system</li>
+              <li>Programmable vertex and fragment shaders</li>
+            </ul>
+          </li>
+        </ul>
+      </section>
+
+      <section>
+        <h2>Advantages</h2>
+        <ul>
+          <li>
+            FAST
+            <ul>
+              <li>Complexity of the scenes we can render is a direct result of parallelism</li>
+            </ul>
+          </li>
+          <li>Programmable shaders are extremely flexible</li>
         </ul>
         <div style="margin-top: 20px">
           <iframe src="http://tareksherif.net/experiments/planet-webgl2/planet-webgl2.html" width="300" height="300"></iframe>
         </div>
       </section>
+      
       <section>
-        <h2>Pipeline Architecture Disadvantages</h2>
+        <h2>Limitations</h2>
         <ul>
           <li>
             Global effects are difficult
@@ -219,15 +285,21 @@
               <li>Shadows</li>
               <li>Reflection</li>
               <li>Refraction</li>
-              <li>Ambient Occlusion</li>
             </ul>
           </li>
-          <li>Have to "cheat"</li>
+          <li>
+            Usually require the scene be rendered multiple times
+            <ul>
+              <li>Comes at a performance cost</li>
+            </ul>
+          </li>
         </ul>
       </section>
+      
       <section>
         <h1>Thanks!</h1>
       </section>
+    
     </div>
   </div>
   <script src="lib/js/head.min.js"></script>
